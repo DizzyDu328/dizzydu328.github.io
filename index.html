@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>复合板质保书自动生成系统</title>
+<style>
+:root{
+  --blue:#185FA5; --blue-d:#0F4478; --bg:#F4F6F9; --card:#fff;
+  --line:#E3E8EF; --txt:#22303F; --sub:#6B7A8C; --green:#1F9D6B; --orange:#E8833A;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+.wrap{max-width:1200px;margin:0 auto;padding:24px 16px 80px}
+header.top{background:linear-gradient(135deg,var(--blue),var(--blue-d));color:#fff;border-radius:12px;padding:26px 32px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center}
+header.top h1{font-size:22px;letter-spacing:1px}
+header.top .sub{opacity:.85;font-size:13px;margin-top:6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(20,40,80,.05)}
+.card h2{font-size:16px;color:var(--blue-d);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h2 .num{background:var(--blue);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+.upgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.upitem{border:1.5px dashed #C4D2E3;border-radius:10px;padding:16px 14px;text-align:center;transition:.15s;background:#FAFCFF}
+.upitem:hover,.upitem.drag{border-color:var(--blue);background:#F0F6FD}
+.upitem .ic{font-size:26px}
+.upitem .t{font-weight:600;margin:8px 0 2px}
+.upitem .d{color:var(--sub);font-size:12px}
+.upitem input{display:none}
+.upitem label.btn{display:inline-block;margin-top:8px;padding:4px 14px;background:var(--blue);color:#fff;border-radius:6px;cursor:pointer;font-size:12px}
+.upitem .fname{font-size:11px;color:var(--green);margin-top:6px;word-break:break-all}
+.actions{text-align:center;margin-top:18px}
+button.primary{background:var(--blue);color:#fff;border:none;padding:10px 38px;border-radius:8px;font-size:15px;cursor:pointer;letter-spacing:2px}
+button.primary:hover{background:var(--blue-d)}
+button.primary:disabled{background:#9DB4CC;cursor:not-allowed}
+.headgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 18px}
+.fld label{display:block;font-size:12px;color:var(--sub);margin-bottom:4px}
+.fld input{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;background:#FBFCFE}
+.fld input:focus{outline:none;border-color:var(--blue)}
+.certblock{border:1px solid var(--line);border-radius:10px;margin-bottom:16px;overflow:hidden}
+.certblock>.head{background:#EEF4FB;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
+.certblock>.head .cn{font-weight:700;color:var(--blue-d)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:#F5F8FC;color:var(--sub);font-weight:600;padding:7px 6px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+td{padding:5px 6px;border-bottom:1px solid #F0F3F7;text-align:center}
+td input{width:100%;border:1px solid transparent;background:transparent;padding:4px 5px;border-radius:5px;font-size:12.5px;text-align:center}
+td input:hover{border-color:#CBD8E8;background:#fff}
+td input:focus{outline:none;border-color:var(--blue);background:#fff}
+td select{max-width:170px}
+.tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;margin-left:8px}
+.tag.cm{background:#E8F4EE;color:var(--green)}
+.tag.bm{background:#FDF0E4;color:var(--orange)}
+.sec-title{font-size:13px;font-weight:700;color:var(--sub);margin:12px 0 6px;padding-left:8px;border-left:3px solid var(--blue)}
+.chemtable td input{min-width:52px}
+.err{background:#FDECEC;color:#C0392B;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:13px;display:none}
+.ok-banner{background:#E8F4EE;border:1px solid #BFE3D2;color:#157A52;border-radius:10px;padding:14px 20px;margin-bottom:16px;display:none;align-items:center;justify-content:space-between}
+.ok-banner a{color:var(--blue);font-weight:700;text-decoration:none;cursor:pointer}
+.muted{color:var(--sub);font-size:12px}
+@media(max-width:900px){.upgrid,.headgrid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>复合板质量证明书 · 自动生成系统</h1>
+      <div class="sub">上传发货单 / 原材料质保书 / 送检性能结果 → 自动填充模板 → 预览确认 → 下载质保书</div>
+    </div>
+  </header>
+
+  <div id="err" class="err"></div>
+  <div id="okBanner" class="ok-banner">
+    <span>质保书已生成（<span id="okCount"></span> 份）</span>
+    <a id="okLink">点击下载 Excel 文件</a>
+  </div>
+
+  <!-- 第一步：上传 -->
+  <div class="card" id="cardUpload">
+    <h2><span class="num">1</span>上传数据文件</h2>
+    <div class="upgrid">
+      <div class="upitem" id="u-fahuo">
+        <div class="t">发货单 / 装车清单</div>
+        <div class="d">.docx / .pdf / 照片 · 合同号、规格数量、板号</div>
+        <label class="btn">选择文件<input type="file" accept=".docx,.pdf,.jpg,.jpeg,.png,.webp,.bmp" id="f-fahuo"></label>
+        <div class="fname" id="n-fahuo"></div>
+      </div>
+      <div class="upitem" id="u-billet">
+        <div class="t">坯料信息对照表（可选）</div>
+        <div class="d">.xlsx · 坯料号 → 材质/规格，质保书按对照表回填</div>
+        <label class="btn">选择文件<input type="file" accept=".xlsx,.xls" id="f-billet"></label>
+        <div class="fname" id="n-billet"></div>
+      </div>
+      <div class="upitem" id="u-clad">
+        <div class="t">复材（不锈钢）质保书</div>
+        <div class="d">.pdf / 照片 · 复层炉号与化学成分</div>
+        <label class="btn">选择文件<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" id="f-clad"></label>
+        <div class="fname" id="n-clad"></div>
+      </div>
+      <div class="upitem" id="u-base">
+        <div class="t">基材（碳钢）质保书</div>
+        <div class="d">.pdf / 照片 · 基层炉号与化学成分</div>
+        <label class="btn">选择文件<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" id="f-base"></label>
+        <div class="fname" id="n-base"></div>
+      </div>
+      <div class="upitem" id="u-tests">
+        <div class="t">送检性能结果</div>
+        <div class="d">.xlsx · 试片编号与力学试验数据</div>
+        <label class="btn">选择文件<input type="file" accept=".xlsx,.xls" id="f-tests"></label>
+        <div class="fname" id="n-tests"></div>
+      </div>
+    </div>
+    <div class="actions" style="border-top:1px solid var(--line);margin-top:16px;padding-top:14px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">
+        <input type="checkbox" id="ai-enable"> 启用 AI 视觉识别（发货单 / 质保书是扫描件或照片时必开）
+      </label>
+      <div id="aiCfgBox" style="display:none;margin-top:10px" class="upgrid">
+        <div class="fld" style="grid-column:1/-1"><label>API Key</label>
+          <input type="password" id="ai-key" placeholder="sk-..." autocomplete="off"></div>
+      </div>
+      <span class="muted" style="margin-left:12px">发货单 / 质保书的 PDF 与照片走 AI 识别；Word 发货单与送检表本地解析。Key 只保存在你本机浏览器</span>
+    </div>
+    <div class="actions">
+      <button class="primary" id="btnParse" onclick="doParse()">开始解析</button>
+      <span class="muted" style="margin-left:12px">解析后所有内容均可手工修改</span>
+    </div>
+  </div>
+
+  <!-- 第二步：确认 -->
+  <div id="editArea" style="display:none">
+    <div class="card">
+      <h2><span class="num">2</span>证书表头（全局）</h2>
+      <div class="headgrid" id="headerFields"></div>
+    </div>
+    <div class="card">
+      <h2><span class="num">3</span>证明书明细（每份证书一个工作表）</h2>
+      <div id="certsArea"></div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="btnGen" onclick="doGenerate()">生成质保书 Excel</button>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/jszip.min.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/exceljs.min.js"></script>
+<script src="vendor/pdf.min.js"></script>
+<script src="core.js"></script>
+<script>
+const CHEMS=["C","Si","Mn","P","S","Cu","Cr","Ni","Mo","N"];let MODEL=null;function showErr(e){const t=document.getElementById("err");t.style.display="block",t.textContent="⚠ "+e}function hideErr(){document.getElementById("err").style.display="none"}pdfjsLib.GlobalWorkerOptions.workerSrc="vendor/pdf.worker.min.js";for(const e of["fahuo","billet","clad","base","tests"]){document.getElementById("f-"+e).addEventListener("change",t=>{document.getElementById("n-"+e).textContent=t.target.files[0]?t.target.files[0].name:""});const t=document.getElementById("u-"+e);t.addEventListener("dragover",e=>{e.preventDefault(),t.classList.add("drag")}),t.addEventListener("dragleave",()=>t.classList.remove("drag")),t.addEventListener("drop",a=>{if(a.preventDefault(),t.classList.remove("drag"),a.dataTransfer.files.length){const t=document.getElementById("f-"+e);t.files=a.dataTransfer.files,t.dispatchEvent(new Event("change"))}})}async function readFileBuf(e){return new Uint8Array(await e.arrayBuffer())}const AI_LS_KEY="qcs_ai_cfg";function loadAICfg(){try{return JSON.parse(localStorage.getItem(AI_LS_KEY)||"{}")}catch(e){return{}}}function saveAICfg(){const e={enable:document.getElementById("ai-enable").checked,key:document.getElementById("ai-key").value.trim(),model:QCSCore.AI_DEFAULTS.model,endpoint:QCSCore.AI_DEFAULTS.endpoint};return localStorage.setItem(AI_LS_KEY,JSON.stringify(e)),e}async function doParse(){hideErr(),document.getElementById("okBanner").style.display="none";const e=document.getElementById("f-fahuo").files[0],t=document.getElementById("f-billet").files[0],a=document.getElementById("f-clad").files[0],n=document.getElementById("f-base").files[0],s=document.getElementById("f-tests").files[0];if(!e)return void showErr("发货单（Word / PDF / 图片）为必传文件");const r=document.getElementById("btnParse");r.disabled=!0;const l=[],o=e=>{r.textContent=e};try{const c=saveAICfg(),h=c.enable&&c.key,u='需要开启"AI 视觉识别"并填写 API Key';let p={contract_no:"",list_no:"",items:[]},m=!1,g=null,f=null;if(e){const b=(d=e.name,(String(d||"").toLowerCase().match(/\.([a-z0-9]+)$/)||[])[1]||""),S=/^image\//.test(e.type||"")||["jpg","jpeg","png","webp","bmp","heic","heif"].includes(b);if("docx"===b){const $=(await JSZip.loadAsync(await e.arrayBuffer())).file("word/document.xml");if(!$)throw new Error("docx 中未找到 word/document.xml，请确认是有效的 Word 文件");p=QCSCore.parseDocxXml(await $.async("string"))}else{if("doc"===b)throw new Error('旧版 .doc 无法直接解析，请在 Word 中"另存为 .docx"后重试');if(S){if(!h)return void showErr("发货单是图片，"+u+"后重试（也可改用 Word / PDF 版发货单）");o("AI 识别发货单照片中…");try{g=[await QCSCore.imageFileToDataUrl(e)],p=await QCSCore.parseFahuoImagesAI(c,g),m=p.items.length>0,p.items.length||l.push("AI 未从发货单照片识别到产品行，请检查清晰度或手工补录")}catch(w){console.error("AI识别发货单失败",w),l.push("AI 识别发货单照片失败（"+String(w.message||w).slice(0,80)+"）")}}else{const L=await readFileBuf(e);f=L;let A=!1;if(h)try{o("AI 识别发货单 PDF 中…");const D=await QCSCore.parseFahuoPdfAI(c,pdfjsLib,L);D.items.length?(p=D,A=!0,m=!0):l.push("AI 未从发货单 PDF 识别到产品行，已尝试本地文字层解析")}catch(x){console.error("AI识别发货单PDF失败",x),l.push("AI 识别发货单 PDF 失败（"+String(x.message||x).slice(0,80)+"），已尝试本地文字层解析")}A||(o("本地解析发货单 PDF 中…"),p=await QCSCore.parseFahuoPdf(pdfjsLib,L),p.items.length||l.push('发货单 PDF 未解析到产品行：若是扫描件请勾选上方"启用 AI 视觉识别"并填写 Key 后重试'))}}}const y=e=>"clad"===e?"复材":"基材";async function i(e,t){if(!t)return[];if(/^image\//.test(t.type||"")||/\.(jpe?g|png|webp|heic|heif)$/i.test(t.name||"")){if(!h)return l.push("上传的是照片（"+y(e)+'），需要开启"AI 视觉识别"并填写 API Key 才能识别，已跳过'),[];try{o("AI 识别"+y(e)+"照片中…");const a=await QCSCore.imageFileToDataUrl(t),n="clad"===e?await QCSCore.parseCladImagesAI(c,[a]):await QCSCore.parseBaseImagesAI(c,[a]);if(n.length)return n;l.push("AI 未从"+y(e)+"照片识别到炉号，请检查照片清晰度或手工填写")}catch(t){console.error("AI照片识别失败",t),l.push("AI 识别"+y(e)+"照片失败（"+String(t.message||t).slice(0,80)+"），已跳过，请手工填写")}return[]}const a=await readFileBuf(t);if(h)try{o("AI 识别"+y(e)+" PDF 中…");const t="clad"===e?await QCSCore.parseCladPdfAI(c,pdfjsLib,a):await QCSCore.parseBasePdfAI(c,pdfjsLib,a);if(t.length)return t;l.push("AI 未从"+y(e)+" PDF 识别到炉号，已用规则解析兜底")}catch(t){console.error("AI识别失败",t),l.push("AI 识别"+y(e)+"失败（"+String(t.message||t).slice(0,80)+"），已用规则解析兜底")}return o("规则解析"+y(e)+" PDF 中…"),"clad"===e?QCSCore.parseCladPdf(pdfjsLib,a):QCSCore.parseBasePdf(pdfjsLib,a)}let E=[],I=[];a&&(E=await i("clad",a)),n&&(I=await i("base",n));let v=[];s&&(v=QCSCore.parseTestsWorkbook(XLSX,await readFileBuf(s)));let C=null;if(t)try{o("解析坯料信息对照表中…"),C=QCSCore.parseBilletWorkbook(XLSX,await readFileBuf(t)),Object.keys(C).length||l.push("坯料信息对照表中未识别到坯料号（首列需为 26C011xxx 形式），已忽略")}catch(B){console.error("对照表解析失败",B),l.push("坯料信息对照表解析失败（"+String(B.message||B).slice(0,80)+"），已忽略")}if(!p.items.length)throw new Error('发货单中未解析到产品行。若为扫描版 PDF 或照片，请勾选"启用 AI 视觉识别"并填写 API Key 后重试；也可改用 Word 版发货单。');if(l.push(...QCSCore.auditFahuo(p)),m&&p.items.some(e=>(e.plates||[]).length))try{o("二次复核板号中…");const _=g||await QCSCore.renderPagesToImages(pdfjsLib,f),M=await QCSCore.verifyFahuoPlatesAI(c,_);M.length&&l.push(...QCSCore.diffFahuoPlates(p,M))}catch(k){console.warn("板号二次复核失败（不影响主流程）",k)}MODEL=QCSCore.buildPrefill({fahuo:p,clad_heats:E,base_heats:I,tests:v,billet:C}),MODEL.billetWarns&&MODEL.billetWarns.length&&l.push(...MODEL.billetWarns),render(),l.length&&showErr(l.join("；")),document.getElementById("editArea").style.display="block",document.getElementById("editArea").scrollIntoView({behavior:"smooth"})}catch(O){console.error(O),showErr(O.message||String(O))}finally{r.disabled=!1,r.textContent="开始解析"}var d}!function(){const e=loadAICfg(),t=document.getElementById("ai-enable"),a=document.getElementById("aiCfgBox");t.checked=!!e.enable,a.style.display=t.checked?"grid":"none",e.key&&(document.getElementById("ai-key").value=e.key),e.key&&(document.getElementById("ai-key").value=e.key),t.addEventListener("change",()=>{a.style.display=t.checked?"grid":"none",saveAICfg()});for(const e of["ai-key"])document.getElementById(e).addEventListener("change",saveAICfg)}();const HEAD_FIELDS=[["contract","合同编号 CONTRACT NO."],["product","产品名称 PRODUCT"],["material","材质 Material"],["spec_std","技术条件 SPEC."],["delivery","交货状态"],["date","证明书日期（YYYY-MM-DD）"],["cert_prefix","证明书编号前缀"],["cert_seq_start","证明书编号起始序号"]];function render(){const e=MODEL.header;document.getElementById("headerFields").innerHTML=HEAD_FIELDS.map(([t,a])=>`<div class="fld"><label>${a}</label><input id="h-${t}" value="${esc(e[t]??"")}"></div>`).join("");const t=document.getElementById("certsArea");t.innerHTML=MODEL.certs.map((e,t)=>{const a=e.groups.map((e,a)=>`\n      <tr>\n        <td style="width:170px"><input data-c="${t}" data-g="${a}" data-f="label" value="${esc(e.label)}"></td>\n        <td><input data-c="${t}" data-g="${a}" data-f="spec" value="${esc(e.spec)}"></td>\n        <td style="width:60px"><input data-c="${t}" data-g="${a}" data-f="qty" value="${e.qty}"></td>\n        <td style="width:80px"><input data-c="${t}" data-g="${a}" data-f="coeff" value="${e.coeff??""}"></td>\n      </tr>`).join(""),n=(e,a,n)=>`\n      <tr>\n        <td>${a}</td>\n        <td style="width:150px">\n          <select onchange="pickHeat(${t},'${n}',this.value)" style="width:100%;padding:4px;border:1px solid var(--line);border-radius:5px">\n            <option value="">— 选择炉号 —</option>\n            ${(MODEL[n]||[]).map((t,a)=>`<option value="${a}" ${t.heat===e.heat?"selected":""}>${esc(t.heat||"(未识别)")}${t.grade?" / "+esc(t.grade):""}</option>`).join("")}\n            <option value="-1" ${(MODEL[n]||[]).some(t=>t.heat===e.heat)?"":"selected"}>手工输入</option>\n          </select>\n          <input style="margin-top:3px" value="${esc(e.heat||"")}" onchange="setHeatManual(${t},'${n}',this.value)">\n        </td>\n        ${CHEMS.map(a=>`<td style="padding:2px"><input data-chem="${t}|${n}|${a}" value="${e.chem[a]??"/"}" style="min-width:48px"></td>`).join("")}\n      </tr>`,s=e.test,r=MODEL.tests.map((e,t)=>`<option value="${t}" ${e.sample_id===s.sample_id?"selected":""}>${esc(e.sample_id)}${e.ts?" · "+e.ts:""}</option>`).join("");return`\n    <div class="certblock">\n      <div class="head">\n        <span class="cn">证明书 ${t+1} <span class="muted">（编号 ${esc(MODEL.header.cert_prefix)}-${String((+MODEL.header.cert_seq_start||1)+t).padStart(2,"0")}）</span></span>\n        <span class="muted">${e.groups.length} 组板 · 共 ${e.groups.reduce((e,t)=>e+(+t.qty||0),0)} 张</span>\n      </div>\n      <div class="sec-title">产品明细（跟发货单保持一致）</div>\n      <table>\n        <tr><th>产品编号</th><th>规格(mm)</th><th>数量</th><th>单重系数(t)</th></tr>\n        ${a}\n      </table>\n      <div class="sec-title">原材料化学成分（炉号）</div>\n      <table class="chemtable">\n        <tr><th>分析区域</th><th>炉号 Heat No</th>${CHEMS.map(e=>`<th>${e}</th>`).join("")}</tr>\n        ${n(e.cm,'<span class="tag cm">C.M 覆材</span>',"clad_heats")}\n        ${n(e.bm,'<span class="tag bm">B.M 基材</span>',"base_heats")}\n      </table>\n      <div class="sec-title">力学试验数据（试片）</div>\n      <table>\n        <tr>\n          <th style="width:150px">试片编号</th><th>抗拉<br>T.S</th><th>屈服<br>Y.S</th><th>伸长率<br>E.L</th>\n          <th>冲击1</th><th>冲击2</th><th>冲击3</th><th>剪切强度</th><th>弯曲直径<br>D=2a</th><th>冲击试样尺寸</th>\n        </tr>\n        <tr>\n          <td><select onchange="pickTest(${t},this.value)" style="width:100%;padding:4px;border:1px solid var(--line);border-radius:5px">\n            <option value="">— 选择试片 —</option>${r}<option value="-1">手工输入</option></select>\n            <input style="margin-top:3px" value="${esc(s.sample_id)}" onchange="setTestManual(${t},this.value)">\n          </td>\n          ${["ts","ys","el","i1","i2","i3","shear"].map(e=>`<td><input data-t="${t}|${e}" value="${s[e]??""}"></td>`).join("")}\n          <td><input data-t="${t}|bd" value="${s.bd??""}" placeholder="留空=2×总厚"></td>\n          <td><input data-t="${t}|specimen" value="${esc(s.specimen||"")}"></td>\n        </tr>\n      </table>\n    </div>`}).join(""),t.querySelectorAll("input[data-c]").forEach(e=>e.addEventListener("change",e=>{const{c:t,g:a,f:n}=e.target.dataset;MODEL.certs[+t].groups[+a][n]="qty"===n?+e.target.value||0:"coeff"===n?""===e.target.value?null:+e.target.value||0:e.target.value})),t.querySelectorAll("input[data-chem]").forEach(e=>e.addEventListener("change",e=>{const[t,a,n]=e.target.dataset.chem.split("|");MODEL.certs[+t][a].chem[n]=e.target.value})),t.querySelectorAll("input[data-t]").forEach(e=>e.addEventListener("change",e=>{const[t,a]=e.target.dataset.t.split("|");let n=e.target.value;["ts","ys","el","i1","i2","i3","shear"].includes(a)&&(n=""===n?"":+n||n),MODEL.certs[+t].test[a]=n})),document.getElementById("headerFields").querySelectorAll("input").forEach(e=>e.addEventListener("change",e=>{const t=e.target.id.slice(2);MODEL.header[t]="cert_seq_start"===t?+e.target.value||1:e.target.value}))}function pickHeat(e,t,a){if(""===a)return;const n=MODEL.certs[e]["clad_heats"===t?"cm":"bm"];if("-1"===a)return;const s=MODEL[t][+a];n.heat=s.heat,n.chem=Object.assign({},s.chem||{}),render()}function setHeatManual(e,t,a){MODEL.certs[e]["clad_heats"===t?"cm":"bm"].heat=a}function pickTest(e,t){if("-1"===t)return;const a=MODEL.tests[+t],n=MODEL.certs[e].test;n.sample_id=a.sample_id;for(const e of["ts","ys","el","i1","i2","i3","shear"])n[e]=a[e]??"";render()}function setTestManual(e,t){MODEL.certs[e].test.sample_id=t}function esc(e){return String(e??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}async function doGenerate(){hideErr();const e=document.getElementById("btnGen");e.disabled=!0,e.textContent="生成中…";try{const e=MODEL.header,t=MODEL.certs.map((t,a)=>({contract:e.contract,product:e.product,material:e.material,spec_std:e.spec_std,delivery:e.delivery,date:e.date,phone:e.phone,cert_no:e.cert_prefix+"-"+String((+e.cert_seq_start||1)+a).padStart(2,"0"),groups:t.groups,cm:t.cm,bm:t.bm,test:t.test,total_thk:t.total_thk})),a=await fetch("assets/template.xlsx");if(!a.ok)throw new Error("模板文件 assets/template.xlsx 加载失败");const n=await a.arrayBuffer();let s=null;await QCSCore.generateXlsx(ExcelJS,n,t,e=>{s=e});const r=new Blob([s],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),l=URL.createObjectURL(r),o=document.getElementById("okLink");o.href=l,o.download=`质保书_${e.contract||"导出"}_${(new Date).toISOString().slice(11,19).replace(/:/g,"")}.xlsx`;const i=document.getElementById("okBanner");document.getElementById("okCount").textContent=t.length,i.style.display="flex",i.scrollIntoView({behavior:"smooth"})}catch(e){console.error(e),showErr("生成失败: "+(e.message||e))}finally{e.disabled=!1,e.textContent="生成质保书 Excel"}}
+</script>
+</body>
+</html>
